@@ -33,6 +33,25 @@ class USB_8SMC5:
                     crc >>= 1
         return crc
     
+    def gets(self):
+        self.conn.write(str.encode('gets'))
+        st = self.conn.read(54)
+
+        crc = self.modbus_crc(st[4:52])
+        ba = crc.to_bytes(2, byteorder='little')
+
+        crc_matches = ba[0] == st[52] and ba[1] == st[53]
+
+        if not crc_matches:
+            raise CrcNotMatches()
+        
+        print(f"movement status: {st[5]}")
+        print(f"powerfull status: {st[6]}")
+        print(f"encoder status: {st[7]}")
+        print(f"wind status: {st[8]}")
+
+
+
     def gser(self):
         self.conn.write(str.encode('gser'))
         serial_num_raw = self.conn.read(10)
@@ -94,6 +113,10 @@ class USB_8SMC5:
 
 class StandaMotorsNotFound(Exception):
     """Raised when no one standa motors found."""
+    pass
+
+class CrcNotMatches(Exception):
+    """Raised when calculated crc doesn't not match with crc from packet."""
     pass
 
 def get_raw_str(raw_bytes):
