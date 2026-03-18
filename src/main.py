@@ -1,4 +1,4 @@
-
+import time
 import argparse
 
 from serial.serialutil import SerialException
@@ -15,6 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('--movr', help='shift by a set offset')
     parser.add_argument('--gser', help='return device serial number', action='store_true')
     parser.add_argument('--gets', help='return device state', action='store_true')
+    parser.add_argument('--zero', help='sets the current position to 0', action='store_true')
         
     args = parser.parse_args()
 
@@ -27,12 +28,18 @@ if __name__ == "__main__":
 
     if args.move is not None:
         motor_drive.move(int(args.move))
+        st = motor_drive.gets()
+        while st[5] & 0x80:
+            time.sleep(1)
+            st = motor_drive.gets()
     elif args.movr is not None:
         motor_drive.movr(int(args.movr))
     elif args.gser:
         print(motor_drive.gser())
     elif args.gets:
         motor_drive.gets()
+    elif args.zero:
+        motor_drive.zero()
     else:
         parser.print_help()
     

@@ -46,9 +46,16 @@ class USB_8SMC5:
             raise CrcNotMatches()
         
         print(f"movement status: {st[5]}")
-        print(f"powerfull status: {st[6]}")
-        print(f"encoder status: {st[7]}")
-        print(f"wind status: {st[8]}")
+        #print(f"powerfull status: {st[6]}")
+        #print(f"encoder status: {st[7]}")
+        #print(f"wind status: {st[8]}")
+        print(f"curr.position: {int.from_bytes(st[9:12], byteorder='little')}")
+        print(f"{chr(956)}_curr.position: {int.from_bytes(st[13:15], byteorder='little')}")
+        #print(f"enc.position: {int.from_bytes(st[15:22], byteorder='little')}")
+        print(f"curr.speed: {int.from_bytes(st[23:26], byteorder='little', signed=True)}")
+        print("===========================")
+
+        return st
 
 
 
@@ -69,7 +76,7 @@ class USB_8SMC5:
     
     def move(self, pos):
         # Fill data of frame
-        data = bytearray(pos.to_bytes(4, "little"))
+        data = bytearray(pos.to_bytes(4, "little", signed=True))
         data += int(0).to_bytes(2, "little")
         data += int(0).to_bytes(6, "little")
 
@@ -91,7 +98,7 @@ class USB_8SMC5:
 
     def movr(self, pos):    
         # Fill data of frame
-        data = bytearray(pos.to_bytes(4, "little"))
+        data = bytearray(pos.to_bytes(4, "little", signed=True))
         data += int(0).to_bytes(2, "little")
         data += int(0).to_bytes(6, "little")
 
@@ -110,6 +117,11 @@ class USB_8SMC5:
         # TODO Check answer for error!
 
         return ret
+    
+    def zero(self):
+        self.conn.write(str.encode('zero'))
+        ret = self.conn.read(4)
+        print(ret)
 
 class StandaMotorsNotFound(Exception):
     """Raised when no one standa motors found."""
