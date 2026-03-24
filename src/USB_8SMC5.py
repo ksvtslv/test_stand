@@ -53,15 +53,6 @@ class USB_8SMC5:
         if not crc_matches:
             raise CrcNotMatches()
         
-        print(f"speed: {int.from_bytes(st[4:7], byteorder='little')}")
-        print(f"uSpeed: {st[8]}")
-        print(f"accel: {int.from_bytes(st[9:10], byteorder='little')}")
-        print(f"decel: {int.from_bytes(st[11:12], byteorder='little')}")
-        print(f"antiplaySpeed: {int.from_bytes(st[13:16], byteorder='little')}")
-        print(f"uAntiplaySpeed: {st[17]}")
-        print(f"moveFlags: {st[18]}")
-
-
         return st
     
     
@@ -130,16 +121,6 @@ class USB_8SMC5:
         if not crc_matches:
             raise CrcNotMatches()
         
-        print(f"movement status: {st[5]}")
-        #print(f"powerfull status: {st[6]}")
-        #print(f"encoder status: {st[7]}")
-        #print(f"wind status: {st[8]}")
-        print(f"curr.position: {int.from_bytes(st[9:12], byteorder='little')}")
-        print(f"{chr(956)}_curr.position: {int.from_bytes(st[13:15], byteorder='little')}")
-        #print(f"enc.position: {int.from_bytes(st[15:22], byteorder='little')}")
-        print(f"curr.speed: {int.from_bytes(st[23:26], byteorder='little', signed=True)}")
-        print("===========================")
-
         return st
 
 
@@ -155,10 +136,6 @@ class USB_8SMC5:
 
         return int.from_bytes(serial_num_raw[4:8][::-1]) if crc_matches else None
 
-        # TODO compare calculated crc with received crc from data frame!
-        #print("CRC16/MODBUS: %02X %02X"%(ba[0], ba[1]))
-        #print(f"original crc = {hex(serial_num_raw[8]), hex(serial_num_raw[9])}")
-    
 
 
     def smov(self,
@@ -182,12 +159,12 @@ class USB_8SMC5:
         '''
 
         data =  bytearray(int(speed).to_bytes(4,  "little", signed=False)) # speed
-        data += bytearray(int(0).to_bytes(1, "little", signed=False)) # uSpeed
-        data += bytearray(int(0).to_bytes(2, "little", signed=False)) # accel
-        data += bytearray(int(0).to_bytes(2, "little", signed=False)) # decel
-        data += bytearray(int(0).to_bytes(4, "little", signed=False)) # antiplaySpeed
-        data += bytearray(int(0).to_bytes(1, "little", signed=False)) # uantiplaySpeed
-        data += bytearray(int(0).to_bytes(1, "little", signed=False)) # moveFlags
+        data += bytearray(int(uSpeed).to_bytes(1, "little", signed=False)) # uSpeed
+        data += bytearray(int(accel).to_bytes(2, "little", signed=False)) # accel
+        data += bytearray(int(decel).to_bytes(2, "little", signed=False)) # decel
+        data += bytearray(int(antiplaySpeed).to_bytes(4, "little", signed=False)) # antiplaySpeed
+        data += bytearray(int(uAntiplaySpeed).to_bytes(1, "little", signed=False)) # uantiplaySpeed
+        data += bytearray(int(moveFlags).to_bytes(1, "little", signed=False)) # moveFlags
         data += bytearray(int(0).to_bytes(9, "little", signed=False)) # reserved
 
         # Calculate crc
@@ -257,6 +234,42 @@ class USB_8SMC5:
         print(ret)
 
 
+
+    def set_speed(self, speed : int):
+        st = self.gmov()
+        self.smov(speed = speed,
+                  uSpeed = st[8],
+                  accel = int.from_bytes(st[9:10], byteorder='little'),
+                  decel = int.from_bytes(st[11:12], byteorder='little'),
+                  antiplaySpeed = int.from_bytes(st[13:16], byteorder='little'),
+                  uAntiplaySpeed = st[17],
+                  moveFlags=st[17])
+
+
+
+    def set_accel(self, accel : int):
+        st = self.gmov()
+        self.smov(speed = int.from_bytes(st[4:7], byteorder='little'),
+                  uSpeed = st[8],
+                  accel = accel,
+                  decel = int.from_bytes(st[11:12], byteorder='little'),
+                  antiplaySpeed = int.from_bytes(st[13:16], byteorder='little'),
+                  uAntiplaySpeed = st[17],
+                  moveFlags=st[17])    
+    
+
+    def set_decel(self, decel : int):
+        st = self.gmov()
+        self.smov(speed = int.from_bytes(st[4:7], byteorder='little'),
+                  uSpeed = st[8],
+                  accel = int.from_bytes(st[9:10], byteorder='little'),
+                  decel = decel,
+                  antiplaySpeed = int.from_bytes(st[13:16], byteorder='little'),
+                  uAntiplaySpeed = st[17],
+                  moveFlags=st[17])
+
+
+
     def wait_for_stop(self, t = 0.1):
         st = self.gets()
         while st[5] & 0x80:
@@ -265,8 +278,7 @@ class USB_8SMC5:
     
     def wait_for_dest(self, pos : int, t = 0.1):
         cur_pos = int.from_bytes(self.gets()[9:12], byteorder='little')
-        while cur_pos != pos:
-            print(f"cur_pos={cur_pos}")
+        while cur_pos < pos:
             time.sleep(t)
             cur_pos = int.from_bytes(self.gets()[9:12], byteorder='little')
 
