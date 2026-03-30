@@ -151,17 +151,20 @@ def run_demo2(motor : USB_8SMC5) -> None:
         10. Stop (if need)
     '''
     motor.move(0)
-    print("moved to 0")
     motor.wait_for_stop()
     motor.set_speed(100)
-    print("speed is 100")
     motor.move(4500)
-    motor.wait_for_dest(400)
-    print("moved to 400")
-    motor.set_speed(1000)
-    print("speed is 1000")
-    motor.wait_for_dest(4500)
-    print("moved to 4500")
+    motor.wait_for_dest(150)
+    motor.set_speed(200)
+    motor.wait_for_dest(150 + 150*2)
+    motor.set_speed(400)
+    motor.wait_for_dest(150*2 + 150*4)
+    motor.set_speed(800)
+    motor.wait_for_dest(150*4 + 150*8)
+    motor.set_speed(1600)
+    motor.wait_for_dest(150*8 + 150*16)
+    time.sleep(1)
+    # TODO go back with different speeds!
     motor.move(0)
 
 
