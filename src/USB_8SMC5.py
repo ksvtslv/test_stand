@@ -181,7 +181,8 @@ class USB_8SMC5:
         # TODO Check answer for error!
 
         return ret
-    
+
+
 
 
     def move(self, pos):
@@ -206,6 +207,9 @@ class USB_8SMC5:
 
         return ret
 
+
+
+
     def movr(self, pos):    
         # Fill data of frame
         data = bytearray(pos.to_bytes(4, "little", signed=True))
@@ -227,7 +231,10 @@ class USB_8SMC5:
         # TODO Check answer for error!
 
         return ret
-    
+
+
+
+
     def zero(self):
         self.conn.write(str.encode('zero'))
         ret = self.conn.read(4)
@@ -235,15 +242,17 @@ class USB_8SMC5:
 
 
 
+
     def set_speed(self, speed : int):
         st = self.gmov()
         self.smov(speed = speed,
                   uSpeed = st[8],
-                  accel = int.from_bytes(st[9:10], byteorder='little'),
-                  decel = int.from_bytes(st[11:12], byteorder='little'),
+                  accel = int.from_bytes(st[9:11], byteorder='little'),
+                  decel = int.from_bytes(st[11:13], byteorder='little'),
                   antiplaySpeed = int.from_bytes(st[13:16], byteorder='little'),
                   uAntiplaySpeed = st[17],
                   moveFlags=st[17])
+
 
 
 
@@ -252,21 +261,24 @@ class USB_8SMC5:
         self.smov(speed = int.from_bytes(st[4:7], byteorder='little'),
                   uSpeed = st[8],
                   accel = accel,
-                  decel = int.from_bytes(st[11:12], byteorder='little'),
+                  decel = int.from_bytes(st[11:13], byteorder='little'),
                   antiplaySpeed = int.from_bytes(st[13:16], byteorder='little'),
                   uAntiplaySpeed = st[17],
-                  moveFlags=st[17])    
-    
+                  moveFlags=st[17])
+
+
+
 
     def set_decel(self, decel : int):
         st = self.gmov()
         self.smov(speed = int.from_bytes(st[4:7], byteorder='little'),
                   uSpeed = st[8],
-                  accel = int.from_bytes(st[9:10], byteorder='little'),
+                  accel = int.from_bytes(st[9:11], byteorder='little'),
                   decel = decel,
                   antiplaySpeed = int.from_bytes(st[13:16], byteorder='little'),
                   uAntiplaySpeed = st[17],
                   moveFlags=st[17])
+
 
 
 
@@ -275,7 +287,10 @@ class USB_8SMC5:
         while st[5] & 0x80:
             time.sleep(t)
             st = self.gets()
-    
+
+
+
+
     def wait_for_dest(self, pos : int, t = 0.1):
         cur_pos = int.from_bytes(self.gets()[9:12], byteorder='little')
         while cur_pos < pos:
