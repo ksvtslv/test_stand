@@ -287,6 +287,15 @@ class USB_8SMC5:
         while st[5] & 0x80:
             time.sleep(t)
             st = self.gets()
+    
+    def wait_for_stop_log(self, t = 0.1):
+        speed = []
+        st = self.gets()
+        while st[5] & 0x80:
+            speed.append(abs(int.from_bytes(st[23:26], byteorder='little', signed=True)))
+            time.sleep(t)
+            st = self.gets()
+        return speed
 
 
 

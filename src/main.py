@@ -1,5 +1,6 @@
 import time
 import argparse
+import numpy as np
 
 from serial.serialutil import SerialException
 
@@ -20,9 +21,11 @@ def main():
     parser.add_argument('--gser', help='return device serial number', action='store_true')
     parser.add_argument('--gets', help='return device state', action='store_true')
     parser.add_argument('--zero', help='sets the current position to 0', action='store_true')
+    parser.add_argument('--plot', help='plot speeds', action='store_true')
     parser.add_argument('--demo', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo1', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo2', help = 'move from 0 to 4500 with several speeds: 100, 1000', action='store_true')
+    parser.add_argument('--demo3', help = 'move from 0 to 4500 with sin speed form', action='store_true')
         
     args = parser.parse_args()
 
@@ -35,6 +38,12 @@ def main():
 
     if args.move is not None:
         motor_drive.move(int(args.move))
+        if args.plot:
+            import matplotlib.pyplot as plt
+            speed = motor_drive.wait_for_stop_log()
+            t = np.linspace(0, np.pi/2, len(speed), endpoint=True)
+            plt.plot(t, speed)
+            plt.show()
     elif args.movr is not None:
         motor_drive.movr(int(args.movr))
     elif args.speed is not None:
@@ -72,6 +81,8 @@ def main():
         run_demo1(motor_drive)
     elif args.demo2:
         run_demo2(motor_drive)
+    elif args.demo3:
+        run_demo3(motor_drive)
     else:
         parser.print_help()
 
@@ -139,16 +150,7 @@ def run_demo1(motor : USB_8SMC5) -> None:
 def run_demo2(motor : USB_8SMC5) -> None:
     '''
     Demo contains next steps:
-        1. Moving to 0
-        2. Setting speed to 100
-        3. Moving from 0 to 281
-        4. Setting speed to 500
-        5. Moving from 281 to 1405+281=1686
-        6. Settings speed to 1000
-        7. Moving from 1686 to 1686+2814=4500
-        8. Stop
-        9. Moving back with reverse repeat steps from 7 to 1
-        10. Stop (if need)
+        1. TODO
     '''
     motor.move(0)
     motor.wait_for_stop()
@@ -166,6 +168,31 @@ def run_demo2(motor : USB_8SMC5) -> None:
     time.sleep(1)
     # TODO go back with different speeds!
     motor.move(0)
+
+
+
+def run_demo3(motor : USB_8SMC5) -> None:
+    '''
+    Demo contains next steps:
+        1. TODO
+    '''
+    motor.move(0)
+    motor.wait_for_stop()
+    motor.set_speed(100)
+    motor.move(4500)
+    motor.wait_for_dest(150)
+    motor.set_speed(200)
+    motor.wait_for_dest(150 + 150*2)
+    motor.set_speed(400)
+    motor.wait_for_dest(150*2 + 150*4)
+    motor.set_speed(800)
+    motor.wait_for_dest(150*4 + 150*8)
+    motor.set_speed(1600)
+    motor.wait_for_dest(150*8 + 150*16)
+    time.sleep(1)
+    # TODO go back with different speeds!
+    motor.move(0)
+
 
 
 if __name__ == "__main__":
