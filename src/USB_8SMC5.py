@@ -312,6 +312,9 @@ class USB_8SMC5:
             time.sleep(t)
             st = self.gets()
     
+
+
+
     def wait_for_stop_log(self, t = 0.1):
         speed = []
         st = self.gets()
@@ -329,6 +332,27 @@ class USB_8SMC5:
         while cur_pos < pos:
             time.sleep(t)
             cur_pos = int.from_bytes(self.gets()[9:12], byteorder='little')
+    
+
+
+
+    def wait_for_speed(self, target_speed : int, t = 0.1):
+        cur_speed = int.from_bytes(self.gets()[23:26], byteorder='little', signed=True)
+        while cur_speed != target_speed:
+            time.sleep(t)
+            cur_speed = int.from_bytes(self.gets()[23:26], byteorder='little', signed=True)
+    
+
+
+
+    def wait_for_abs_speed(self, target_speed : int, t = 0.1):
+        cur_speed = abs(int.from_bytes(self.gets()[23:26], byteorder='little', signed=True))
+        while cur_speed != target_speed:
+            time.sleep(t)
+            cur_speed = abs(int.from_bytes(self.gets()[23:26], byteorder='little', signed=True))
+
+
+
 
 class StandaMotorNotFound(Exception):
     """Raised when no one standa motors found."""
