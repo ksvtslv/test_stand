@@ -14,6 +14,8 @@ class USB_8SMC5:
                      stopbits      = serial.STOPBITS_TWO,
                      timeout       = 0.3,
                      write_timeout = 0.3,)
+            if self.conn is None:
+                continue
             if self.gser() is not None:
                 break
         if self.conn is None:
@@ -128,6 +130,8 @@ class USB_8SMC5:
     def gser(self):
         self.conn.write(str.encode('gser'))
         serial_num_raw = self.conn.read(10)
+        if len(serial_num_raw) != 10:
+            return None
 
         crc = self.modbus_crc(serial_num_raw[4:8])
         ba = crc.to_bytes(2, byteorder='little')
@@ -232,6 +236,26 @@ class USB_8SMC5:
 
         return ret
 
+
+
+    def left(self):
+        self.conn.write(str.encode('left'))
+        ret = self.conn.read(4)
+        print(ret)
+
+    
+
+    def rigt(self):
+        self.conn.write(str.encode('rigt'))
+        ret = self.conn.read(4)
+        print(ret)
+    
+
+
+    def stop(self):
+        self.conn.write(str.encode('stop'))
+        ret = self.conn.read(4)
+        print(ret)
 
 
 

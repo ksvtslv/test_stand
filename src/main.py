@@ -14,6 +14,8 @@ def main():
     
     parser.add_argument('--move', help="move to postition")
     parser.add_argument('--movr', help='shift by a set offset')
+    parser.add_argument('--left', help='start moving left', action='store_true')
+    parser.add_argument('--rigt', help='start moving right', action='store_true')
     parser.add_argument('--speed', help="set speed")
     parser.add_argument('--accel', help="set acceleration")
     parser.add_argument('--decel', help="set deceleration")
@@ -21,6 +23,7 @@ def main():
     parser.add_argument('--gser', help='return device serial number', action='store_true')
     parser.add_argument('--gets', help='return device state', action='store_true')
     parser.add_argument('--zero', help='sets the current position to 0', action='store_true')
+    parser.add_argument('--stop', help='immediately stops the engine, moves it to the STOP state', action='store_true')
     parser.add_argument('--plot', help='plot speeds', action='store_true')
     parser.add_argument('--demo', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo1', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
@@ -46,6 +49,10 @@ def main():
             plt.show()
     elif args.movr is not None:
         motor_drive.movr(int(args.movr))
+    elif args.left:
+        motor_drive.left()
+    elif args.rigt:
+        motor_drive.rigt()
     elif args.speed is not None:
         motor_drive.set_speed(args.speed)
     elif args.accel is not None:
@@ -75,6 +82,8 @@ def main():
         print(f"curr.speed: {int.from_bytes(st[23:26], byteorder='little', signed=True)}")
     elif args.zero:
         motor_drive.zero()
+    elif args.stop:
+        motor_drive.stop()
     elif args.demo:
         run_demo(motor_drive)
     elif args.demo1:
@@ -171,27 +180,122 @@ def run_demo2(motor : USB_8SMC5) -> None:
 
 
 
+#def run_demo3(motor : USB_8SMC5) -> None:
+#    '''
+#    Demo contains next steps:
+#        1. TODO
+#    '''
+#    import matplotlib.pyplot as plt
+#    # ===== параметры движения =====
+#    amplitude_rev = 1.0     # амплитуда в оборотах (±1 оборот)
+#    period = 5.0            # секунд
+#    dt = 0.01               # шаг обновления
+#
+#    # ===== параметры мотора =====
+#    steps_per_rev = 200
+#    microstep = 256
+#
+#    steps_per_rev_full = steps_per_rev * microstep
+#
+#    # амплитуда в микрошагов
+#    A = amplitude_rev * steps_per_rev_full
+#
+#    omega = 2 * np.pi / period
+#
+#    # увеличить ускорение для плавности
+#    motor.set_accel(65000)
+#    motor.set_decel(65000)
+#    motor.set_speed(50000)
+#
+#    t = 0.0
+#    cur_pos = []
+#    while t < 2:
+#        # синус по позиции
+#        pos = A*np.cos(omega * t)
+#
+#        motor.move(int(pos))
+#
+#        time.sleep(dt)
+#        t += dt
+#        cur_pos.append(int.from_bytes(motor.gets()[9:12], byteorder='little'))
+#    plt.plot(np.linspace(1, len(cur_pos), len(cur_pos), endpoint=True), cur_pos)
+#    motor.move(0)
+#    plt.show()
+
+    #================================
+    #n = 10
+    #t = np.linspace(0, 90, n, endpoint=True)
+    #speeds = np.sin(np.pi*t/180.0)*1000
+    ##exit(0)
+    #plt_speeds = []
+    #motor.set_accel(50000)
+    #motor.set_decel(50000)
+    #motor.set_speed(1000)
+    #motor.move(0)
+    #motor.wait_for_stop()
+    #motor.move(-4500)
+    #motor.wait_for_stop()
+    #print("before start test")
+    #motor.set_speed(speeds[0])
+    #motor.move(4500)
+    #for v in speeds:
+    #    print(f"motor speed = {v}")
+    #    motor.set_speed(v)
+    #    time.sleep(1)
+    #    plt_speeds.append(int.from_bytes(motor.gets()[23:26], byteorder='little', signed=True))
+    ## TODO go back with different speeds!
+    #motor.move(0)
+    #plt_t = np.linspace(1, len(plt_speeds), len(plt_speeds))
+    #plt.plot(plt_t, plt_speeds)
+    #plt.show()
+
+
 def run_demo3(motor : USB_8SMC5) -> None:
     '''
     Demo contains next steps:
         1. TODO
     '''
-    motor.move(0)
-    motor.wait_for_stop()
-    motor.set_speed(100)
-    motor.move(4500)
-    motor.wait_for_dest(150)
-    motor.set_speed(200)
-    motor.wait_for_dest(150 + 150*2)
-    motor.set_speed(400)
-    motor.wait_for_dest(150*2 + 150*4)
-    motor.set_speed(800)
-    motor.wait_for_dest(150*4 + 150*8)
-    motor.set_speed(1600)
-    motor.wait_for_dest(150*8 + 150*16)
-    time.sleep(1)
-    # TODO go back with different speeds!
-    motor.move(0)
+    import matplotlib.pyplot as plt
+    Vmax = 10000
+    period = 8.0
+    dt = 0.1
+
+    omega = 2 * np.pi / period
+
+    # настройки движения
+    motor.set_accel(60000)
+    motor.set_decel(60000)
+
+    t = 0
+
+    direction = 1
+    v = Vmax * np.sin(omega * t)
+    print(v)
+    motor.set_speed(int(abs(v)))
+    motor.rigt()
+
+    plt_speed = []
+    while t < 2.0:
+        v = Vmax * np.sin(omega * t)
+    
+        new_dir = 1 if v >= 0 else -1
+    
+        if new_dir != direction:
+            if new_dir > 0:
+                motor.rigt()
+            else:
+                motor.left()
+    
+            direction = new_dir
+    
+        speed = int(abs(v))
+        plt_speed.append(speed)
+        motor.set_speed(speed)
+        t += dt
+        time.sleep(dt)
+    plt.plot(np.linspace(1, len(plt_speed), len(plt_speed)), plt_speed)
+    plt.show()
+    print(plt_speed)
 
 
 
