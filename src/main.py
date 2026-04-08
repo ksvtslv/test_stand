@@ -22,6 +22,8 @@ def main():
     parser.add_argument('--gmov', help='return movement settings (speed, acceleration, threshold, etc.)', action='store_true')
     parser.add_argument('--gser', help='return device serial number', action='store_true')
     parser.add_argument('--gets', help='return device state', action='store_true')
+    parser.add_argument('--geds', help='return border and limit switches settings', action='store_true')
+    parser.add_argument('--geng', help='return engine settings', action='store_true')
     parser.add_argument('--zero', help='sets the current position to 0', action='store_true')
     parser.add_argument('--stop', help='immediately stops the engine, moves it to the STOP state', action='store_true')
     parser.add_argument('--plot', help='plot speeds', action='store_true')
@@ -80,6 +82,19 @@ def main():
         print(f"{chr(956)}_curr.position: {int.from_bytes(st[13:15], byteorder='little')}")
         #print(f"enc.position: {int.from_bytes(st[15:22], byteorder='little')}")
         print(f"curr.speed: {int.from_bytes(st[23:26], byteorder='little', signed=True)}")
+    elif args.geds:
+        data = motor_drive.geds()
+        print(f"BORDER_IS_ENCODER             = {data[5] & 0x1}")
+        print(f"BORDER_STOP_LEFT              = {data[5] & 0x2}")
+        print(f"BORDER_STOP_RIGHT             = {data[5] & 0x4}")
+        print(f"BORDERS_SWAP_MISSET_DETECTION = {data[5] & 0x8}")
+        print(f"LeftBorder                    = {int.from_bytes(data[7:11], byteorder='little', signed=True)}")
+        print(f"uLeftBorder                   = {int.from_bytes(data[11:13], byteorder='little', signed=True)}")
+        print(f"RightBorder                   = {int.from_bytes(data[13:17], byteorder='little', signed=True)}")
+        print(f"uRitghBorder                  = {int.from_bytes(data[17:19], byteorder='little', signed=True)}")
+    elif args.geng:
+        data = motor_drive.geng()
+        print(data)
     elif args.zero:
         motor_drive.zero()
     elif args.stop:
@@ -91,7 +106,7 @@ def main():
     elif args.demo2:
         run_demo2(motor_drive)
     elif args.demo3:
-        run_demo4(motor_drive)
+        run_demo3(motor_drive)
     else:
         parser.print_help()
 
@@ -208,7 +223,7 @@ def run_demo3(motor : USB_8SMC5) -> None:
     plt_t = []
     print("TEST STARTED")
     try:
-        while t < 3.14*2.6:
+        while True:
             v = Vmax * np.sin(omega * t)
             new_dir = 1 if v >= 0 else -1
 
@@ -223,9 +238,9 @@ def run_demo3(motor : USB_8SMC5) -> None:
             speed = int(abs(v))
             plt_speed.append(v)
             motor.set_speed(speed)
-            time.sleep(0.1)
+            time.sleep(dt)
             motor.wait_for_abs_speed(speed)
-            t += dt
+            t = (t + dt) % period
     except:
         pass
 

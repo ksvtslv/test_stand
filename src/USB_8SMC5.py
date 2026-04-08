@@ -63,20 +63,50 @@ class USB_8SMC5:
         '''
         Read border and limit switches settings.
         '''
-        pass
+        self.conn.write(str.encode('geds'))
+        data = self.conn.read(26)
+
+        crc = self.modbus_crc(data[4:24])
+        ba = crc.to_bytes(2, byteorder='little')
+
+        crc_matches = ba[0] == data[24] and ba[1] == data[25]
+
+        if not crc_matches:
+            raise CrcNotMatches()
+        
+        return data
+
+
+
     def gsec(self):
         '''
         Read settings of step motor power control. Used with a stepper motor only.
         '''
         pass
+
+
+
     def geng(self):
         '''
         Read engine settings. This function reads the structure containing a set of useful motor settings stored
         in the controller’s memory. These settings specify motor shaft movement algorithm, list of limitations
         and rated characteristics.
         '''
-        # TODO
-        pass
+        self.conn.write(str.encode('geng'))
+        data = self.conn.read(34)
+
+        crc = self.modbus_crc(data[4:32])
+        ba = crc.to_bytes(2, byteorder='little')
+
+        crc_matches = ba[0] == data[32] and ba[1] == data[33]
+
+        if not crc_matches:
+            raise CrcNotMatches()
+        
+        return data
+
+
+
     def gfbs(self):
         pass
     def gpwr(self):
