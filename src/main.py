@@ -91,7 +91,7 @@ def main():
     elif args.demo2:
         run_demo2(motor_drive)
     elif args.demo3:
-        run_demo3(motor_drive)
+        run_demo4(motor_drive)
     else:
         parser.print_help()
 
@@ -201,14 +201,14 @@ def run_demo3(motor : USB_8SMC5) -> None:
 
     direction = 1
     v = Vmax * np.sin(omega * t)
-    print(v)
     motor.set_speed(int(abs(v)))
     motor.rigt()
 
     plt_speed = []
+    plt_t = []
     print("TEST STARTED")
     try:
-        while t < 3.14*3:
+        while t < 3.14*2.6:
             v = Vmax * np.sin(omega * t)
             new_dir = 1 if v >= 0 else -1
 
@@ -223,6 +223,7 @@ def run_demo3(motor : USB_8SMC5) -> None:
             speed = int(abs(v))
             plt_speed.append(v)
             motor.set_speed(speed)
+            time.sleep(0.1)
             motor.wait_for_abs_speed(speed)
             t += dt
     except:
@@ -234,6 +235,17 @@ def run_demo3(motor : USB_8SMC5) -> None:
     plt.plot(np.linspace(1, len(plt_speed), len(plt_speed)), plt_speed)
     plt.show()
 
+
+
+def run_demo4(motor : USB_8SMC5) -> None:
+    motor.set_accel(60000)
+    motor.set_decel(60000)
+    motor.zero()
+
+    motor.set_speed(50)
+    motor.rigt()
+    time.sleep(5)
+    motor.stop()
 
 
 if __name__ == "__main__":
