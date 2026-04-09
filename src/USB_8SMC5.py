@@ -356,12 +356,38 @@ class USB_8SMC5:
 
 
 
+    def wait_for_dest(self, pos : int, dt = 0.1):
+        cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
+        print(f"rpos={pos}")
+        ds = abs(cur_pos - pos)
+        while ds > 5:
+            print(f"rcur pos={cur_pos}")
+            time.sleep(dt)
+            cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
+            if abs(cur_pos - pos) > ds:
+                break
+            ds = abs(cur_pos - pos)
 
-    def wait_for_dest(self, pos : int, t = 0.1):
-        cur_pos = int.from_bytes(self.gets()[9:12], byteorder='little')
+
+
+
+    def wait_for_dest_right(self, pos : int, dt = 0.1):
+        cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
+        print(f"rpos={pos}")
         while cur_pos < pos:
-            time.sleep(t)
-            cur_pos = int.from_bytes(self.gets()[9:12], byteorder='little')
+            print(f"rcur pos={cur_pos}")
+            time.sleep(dt)
+            cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
+    
+
+
+    def wait_for_dest_left(self, pos : int, dt = 0.1):
+        cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
+        print(f"lpos={pos}")
+        while cur_pos > pos:
+            print(f"lcur pos={cur_pos}")
+            time.sleep(dt)
+            cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
     
 
 

@@ -1,4 +1,5 @@
 import time
+import datetime
 import argparse
 import numpy as np
 
@@ -78,7 +79,7 @@ def main():
         #print(f"powerfull status: {st[6]}")
         #print(f"encoder status: {st[7]}")
         #print(f"wind status: {st[8]}")
-        print(f"curr.position: {int.from_bytes(st[9:12], byteorder='little')}")
+        print(f"curr.position: {int.from_bytes(st[9:13], byteorder='little')}")
         print(f"{chr(956)}_curr.position: {int.from_bytes(st[13:15], byteorder='little')}")
         #print(f"enc.position: {int.from_bytes(st[15:22], byteorder='little')}")
         print(f"curr.speed: {int.from_bytes(st[23:26], byteorder='little', signed=True)}")
@@ -219,9 +220,12 @@ def run_demo3(motor : USB_8SMC5) -> None:
     motor.set_speed(int(abs(v)))
     motor.rigt()
 
-    plt_speed = []
-    plt_t = []
+    #plt_speed = []
+    #plt_t = []
+    dist = 0.0
     print("TEST STARTED")
+    #t_start = datetime.datetime.now()
+    #wait_for_dest = motor.wait_for_dest_right
     try:
         while True:
             v = Vmax * np.sin(omega * t)
@@ -230,24 +234,49 @@ def run_demo3(motor : USB_8SMC5) -> None:
             if new_dir != direction:
                 if new_dir > 0:
                     motor.rigt()
+                    wait_for_dest = motor.wait_for_dest_right
                 else:
                     motor.left()
+                    wait_for_dest = motor.wait_for_dest_left
 
                 direction = new_dir
 
+            cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
+            print(f"_cur_pos_ = {cur_pos}")
             speed = int(abs(v))
-            plt_speed.append(v)
+            #plt_speed.append(v)
             motor.set_speed(speed)
-            time.sleep(dt)
             motor.wait_for_abs_speed(speed)
+            print(f"old_dist={dist}")
+            dist += int(v)*dt
+            if cur_pos > dist and direction == 1:
+                dist = cur_pos
+            if cur_pos < dist and direction == -1:
+                dist = cur_pos
+            print(f"wait for {dist} with speed {int(v)}")
+            if speed != 0:
+                #wait_for_dest(dist, dt = 0.01)
+                motor.wait_for_dest(dist, dt = 0.1)
+            #time.sleep(dt)
+            #plt_t.append(int(((datetime.datetime.now()-t_start).microseconds)/1000))
             t = (t + dt) % period
-    except:
+    except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print(f"Exception {e}")
+        exit(1)
 
     print("TEST FINISHED")
     motor.move(0)
 
-    plt.plot(np.linspace(1, len(plt_speed), len(plt_speed)), plt_speed)
+    #plt.figure(1)
+    #plt.plot(np.linspace(1, len(plt_speed), len(plt_speed)), plt_speed)
+    #plt.title("speed")
+
+    #plt.figure(2)
+    #plt.plot(np.linspace(1, len(plt_t), len(plt_t)), plt_t)
+    #plt.title("time")
+
     plt.show()
 
 
