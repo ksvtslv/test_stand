@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--demo1', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo2', help = 'move from 0 to 4500 with several speeds: 100, 1000', action='store_true')
     parser.add_argument('--demo3', help = 'move from 0 to 4500 with sin speed form', action='store_true')
+    parser.add_argument('--demo4', help = 'move from 0 to 4500 with cos speed form', action='store_true')
         
     args = parser.parse_args()
 
@@ -108,6 +109,8 @@ def main():
         run_demo2(motor_drive)
     elif args.demo3:
         run_demo3(motor_drive)
+    elif args.demo4:
+        run_demo4(motor_drive)
     else:
         parser.print_help()
 
@@ -281,15 +284,93 @@ def run_demo3(motor : USB_8SMC5) -> None:
 
 
 
+
+
 def run_demo4(motor : USB_8SMC5) -> None:
+    Vmax = 2400
+    period = 10.0
+    dt = 0.1
+    AngleMax = 10 #degrees
+
+    omega = 2 * np.pi / period
+
+    # настройки движения
     motor.set_accel(60000)
     motor.set_decel(60000)
     motor.zero()
 
-    motor.set_speed(50)
-    motor.rigt()
-    time.sleep(5)
-    motor.stop()
+    dest = []
+    speed = []
+
+    t = 0
+    d0 = AngleMax * np.sin(omega * t)
+    print("TEST STARTED")
+    i = 0
+    try:
+        while i < 100:
+            d1 = AngleMax * 100 * np.sin(omega * (t + dt))
+            d2 = AngleMax * 100 * np.sin(omega * (t + dt + dt))
+            v1 = (d1-d0)/dt
+            v2 = (d2-d1)/dt
+
+            cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
+            print(f"i = {i}, cur_pos = {cur_pos}, d1={d1}, d2={d2}, v1 = {v1}, v2 = {v2}")
+            motor.set_speed(abs(int(v1)))
+            print(f"speed {abs(int(v1))} is set")
+            motor.move(int(d2))
+            print(f"moving to {int(d2)} started")
+            dest.append(d1)
+            dest.append(d2)
+            speed.append(v1)
+            speed.append(v2)
+            motor.wait_for_dest(int(d1))
+            print("wait success")
+            motor.set_speed(abs(int(v2)))
+            print(f"speed {abs(int(v2))} is set")
+            t = (t + 2*dt) % period
+            i += 1
+            d0 = d2
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print("="*10)
+        print(f"Exception {e}")
+        print("="*10)
+
+    print("TEST FINISHED")
+    motor.set_speed(1000)
+    motor.move(0)
+    #import matplotlib.pyplot as plt
+    #plt.figure(figsize=(8, 5))
+    #plt.plot(np.linspace(1, len(dest), len(dest)), dest)
+    #plt.scatter(np.linspace(1, len(dest), len(dest)), dest, color='red', s=50, label='Dots')
+    #plt.xlabel("Destination")
+    #plt.ylabel("Point number")
+    #plt.title("Destination")
+    #plt.legend()
+    #plt.grid(True, linestyle='--', alpha=0.6)
+
+    #plt.figure(figsize=(8, 5))
+    #plt.plot(np.linspace(1, len(speed), len(speed)), speed)
+    #plt.scatter(np.linspace(1, len(speed), len(speed)), speed, color='red', s=50, label='Dots')
+    #plt.xlabel("Speed")
+    #plt.ylabel("Point number")
+    #plt.title("Speed")
+    #plt.legend()
+    #plt.grid(True, linestyle='--', alpha=0.6)
+
+    #plt.show()
+
+
+#def run_demo4(motor : USB_8SMC5) -> None:
+#    motor.set_accel(60000)
+#    motor.set_decel(60000)
+#    motor.zero()
+#
+#    motor.set_speed(50)
+#    motor.rigt()
+#    time.sleep(5)
+#    motor.stop()
 
 
 if __name__ == "__main__":
