@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--demo1', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo2', help = 'move from 0 to 4500 with several speeds: 100, 1000', action='store_true')
     parser.add_argument('--demo3', help = 'move from 0 to 4500 with sin speed form', action='store_true')
-    parser.add_argument('--demo4', help = 'move from 0 to 4500 with cos speed form', action='store_true')
+    #parser.add_argument('--demo4', help = 'move from 0 to 4500 with cos speed form', action='store_true')
         
     args = parser.parse_args()
 
@@ -109,8 +109,8 @@ def main():
         run_demo2(motor_drive)
     elif args.demo3:
         run_demo3(motor_drive)
-    elif args.demo4:
-        run_demo4(motor_drive)
+    #elif args.demo4:
+    #    run_demo4(motor_drive)
     else:
         parser.print_help()
 
@@ -204,10 +204,12 @@ def run_demo3(motor : USB_8SMC5) -> None:
     Demo contains next steps:
         1. TODO
     '''
-    import matplotlib.pyplot as plt
-    Vmax = 2400
-    period = 8.0
+    #import matplotlib.pyplot as plt
+    D = 10*100
+    period = 10.0
     dt = 0.1
+
+    Vmax = D * 2 * np.pi / period
 
     omega = 2 * np.pi / period
 
@@ -218,10 +220,12 @@ def run_demo3(motor : USB_8SMC5) -> None:
 
     t = 0
 
-    direction = 1
-    v = Vmax * np.sin(omega * t)
+    v = Vmax * np.cos(omega * t)
     motor.set_speed(int(abs(v)))
-    motor.rigt()
+    direction = 1 if v >= 0 else -1
+    if direction == 1:
+        motor.rigt()
+    else:motor.left()
 
     #plt_speed = []
     #plt_t = []
@@ -231,32 +235,32 @@ def run_demo3(motor : USB_8SMC5) -> None:
     #wait_for_dest = motor.wait_for_dest_right
     try:
         while True:
-            v = Vmax * np.sin(omega * t)
+            v = Vmax * np.cos(omega * t)
             new_dir = 1 if v >= 0 else -1
 
             if new_dir != direction:
                 if new_dir > 0:
                     motor.rigt()
-                    wait_for_dest = motor.wait_for_dest_right
+                    #wait_for_dest = motor.wait_for_dest_right
                 else:
                     motor.left()
-                    wait_for_dest = motor.wait_for_dest_left
+                    #wait_for_dest = motor.wait_for_dest_left
 
                 direction = new_dir
 
             cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
-            print(f"_cur_pos_ = {cur_pos}")
+            #print(f"_cur_pos_ = {cur_pos}")
             speed = int(abs(v))
             #plt_speed.append(v)
             motor.set_speed(speed)
             motor.wait_for_abs_speed(speed)
-            print(f"old_dist={dist}")
+            #print(f"old_dist={dist}")
             dist += int(v)*dt
             if cur_pos > dist and direction == 1:
                 dist = cur_pos
             if cur_pos < dist and direction == -1:
                 dist = cur_pos
-            print(f"wait for {dist} with speed {int(v)}")
+            #print(f"wait for {dist} with speed {int(v)}")
             if speed != 0:
                 #wait_for_dest(dist, dt = 0.01)
                 motor.wait_for_dest(dist, dt = 0.1)
@@ -270,6 +274,7 @@ def run_demo3(motor : USB_8SMC5) -> None:
         exit(1)
 
     print("TEST FINISHED")
+    motor.set_speed(1000)
     motor.move(0)
 
     #plt.figure(1)
@@ -280,86 +285,85 @@ def run_demo3(motor : USB_8SMC5) -> None:
     #plt.plot(np.linspace(1, len(plt_t), len(plt_t)), plt_t)
     #plt.title("time")
 
-    plt.show()
-
-
-
-
-
-def run_demo4(motor : USB_8SMC5) -> None:
-    Vmax = 2400
-    period = 10.0
-    dt = 0.1
-    AngleMax = 10 #degrees
-
-    omega = 2 * np.pi / period
-
-    # настройки движения
-    motor.set_accel(60000)
-    motor.set_decel(60000)
-    motor.zero()
-
-    dest = []
-    speed = []
-
-    t = 0
-    d0 = AngleMax * np.sin(omega * t)
-    print("TEST STARTED")
-    i = 0
-    try:
-        while i < 100:
-            d1 = AngleMax * 100 * np.sin(omega * (t + dt))
-            d2 = AngleMax * 100 * np.sin(omega * (t + dt + dt))
-            v1 = (d1-d0)/dt
-            v2 = (d2-d1)/dt
-
-            cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
-            print(f"i = {i}, cur_pos = {cur_pos}, d1={d1}, d2={d2}, v1 = {v1}, v2 = {v2}")
-            motor.set_speed(abs(int(v1)))
-            print(f"speed {abs(int(v1))} is set")
-            motor.move(int(d2))
-            print(f"moving to {int(d2)} started")
-            dest.append(d1)
-            dest.append(d2)
-            speed.append(v1)
-            speed.append(v2)
-            motor.wait_for_dest(int(d1))
-            print("wait success")
-            motor.set_speed(abs(int(v2)))
-            print(f"speed {abs(int(v2))} is set")
-            t = (t + 2*dt) % period
-            i += 1
-            d0 = d2
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        print("="*10)
-        print(f"Exception {e}")
-        print("="*10)
-
-    print("TEST FINISHED")
-    motor.set_speed(1000)
-    motor.move(0)
-    #import matplotlib.pyplot as plt
-    #plt.figure(figsize=(8, 5))
-    #plt.plot(np.linspace(1, len(dest), len(dest)), dest)
-    #plt.scatter(np.linspace(1, len(dest), len(dest)), dest, color='red', s=50, label='Dots')
-    #plt.xlabel("Destination")
-    #plt.ylabel("Point number")
-    #plt.title("Destination")
-    #plt.legend()
-    #plt.grid(True, linestyle='--', alpha=0.6)
-
-    #plt.figure(figsize=(8, 5))
-    #plt.plot(np.linspace(1, len(speed), len(speed)), speed)
-    #plt.scatter(np.linspace(1, len(speed), len(speed)), speed, color='red', s=50, label='Dots')
-    #plt.xlabel("Speed")
-    #plt.ylabel("Point number")
-    #plt.title("Speed")
-    #plt.legend()
-    #plt.grid(True, linestyle='--', alpha=0.6)
-
     #plt.show()
+
+
+
+
+
+#def run_demo4(motor : USB_8SMC5) -> None:
+#    Vmax = 2400
+#    period = 10.0
+#    dt = 0.1
+#    AngleMax = 10 #degrees
+#
+#    omega = 2 * np.pi / period
+#
+#    # настройки движения
+#    motor.set_accel(60000)
+#    motor.set_decel(60000)
+#    motor.zero()
+#
+#    dest = []
+#    speed = []
+#
+#    t = 0
+#    d0 = AngleMax * np.sin(omega * t)
+#    dest = []
+#    print("TEST STARTED")
+#    try:
+#        while True:
+#            d1 = int(AngleMax * 100 * np.sin(omega * (t + dt)))
+#            d2 = int(AngleMax * 100 * np.sin(omega * (t + dt + dt)))
+#            d3 = int(AngleMax * 100 * np.sin(omega * (t + dt + dt + dt)))
+#            dest.append(d3)
+#            v = (d3-d0)/dt
+#            print(f"v={v}")
+#            print(f"d1={d1}, d2={d2}, d3={d3}")
+#            
+#            motor.set_speed(abs(int(v)))
+#            print(f"cur_pos = {int.from_bytes(motor.gets()[9:13], byteorder='little')}")
+#            motor.move(d3)
+#            cur_speed = int.from_bytes(motor.gets()[23:27], byteorder='little', signed=True)
+#            print(f"cur_speed={cur_speed}")
+#            #motor.wait_for_abs_speed(abs(int(v)))
+#            motor.set_speed(abs(int(v)))
+#            time.sleep(0.1)
+#            if cur_speed != 0:
+#                motor.wait_for_dest(int((d1+d2)/2))
+#            d0 = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
+#            t = np.arcsin(d0*0.01/AngleMax)/omega % period
+#            print(f"t = {t}")
+#    except KeyboardInterrupt:
+#        pass
+#    except Exception as e:
+#        print("="*10)
+#        print(f"Exception {e}")
+#        print("="*10)
+#
+#    print("TEST FINISHED")
+#    motor.set_speed(1000)
+#    motor.move(0)
+#    import matplotlib.pyplot as plt
+#    plt.figure(figsize=(8, 5))
+#    plt.plot(np.linspace(1, len(dest), len(dest)), dest)
+#    #plt.scatter(np.linspace(1, len(dest), len(dest)), dest, color='red', s=50, label='Dots')
+#    #plt.xlabel("Destination")
+#    #plt.ylabel("Point number")
+#    #plt.title("Destination")
+#    #plt.legend()
+#    #plt.grid(True, linestyle='--', alpha=0.6)
+#
+#    #plt.figure(figsize=(8, 5))
+#    #plt.plot(np.linspace(1, len(speed), len(speed)), speed)
+#    #plt.scatter(np.linspace(1, len(speed), len(speed)), speed, color='red', s=50, label='Dots')
+#    #plt.xlabel("Speed")
+#    #plt.ylabel("Point number")
+#    #plt.title("Speed")
+#    #plt.legend()
+#    #plt.grid(True, linestyle='--', alpha=0.6)
+#
+#    plt.show()
 
 
 #def run_demo4(motor : USB_8SMC5) -> None:

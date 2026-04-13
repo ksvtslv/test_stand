@@ -358,14 +358,15 @@ class USB_8SMC5:
 
     def wait_for_dest(self, pos : int, dt = 0.1):
         cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little', signed=True)
-        ds = abs(cur_pos - pos)
-        while ds > 5:
-            print(f"cur_pos={cur_pos}, ds={ds}")
+        ds1 = abs(cur_pos - pos)
+        ds0 = ds1
+        while ds0 >5:
+            ds0 = ds1
             time.sleep(dt)
             cur_pos = int.from_bytes(self.gets()[9:13], byteorder='little')
-            if abs(cur_pos - pos) > ds:
+            ds1 = abs(cur_pos - pos)
+            if ds1 > ds0:
                 break
-            ds = abs(cur_pos - pos)
 
 
 
@@ -397,10 +398,10 @@ class USB_8SMC5:
 
 
     def wait_for_abs_speed(self, target_speed : int, t = 0.1):
-        cur_speed = abs(int.from_bytes(self.gets()[23:26], byteorder='little', signed=True))
+        cur_speed = abs(int.from_bytes(self.gets()[23:27], byteorder='little', signed=True))
         while cur_speed != target_speed:
             time.sleep(t)
-            cur_speed = abs(int.from_bytes(self.gets()[23:26], byteorder='little', signed=True))
+            cur_speed = abs(int.from_bytes(self.gets()[23:27], byteorder='little', signed=True))
 
 
 
