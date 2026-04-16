@@ -204,11 +204,11 @@ def run_demo3(motor : USB_8SMC5) -> None:
     Demo contains next steps:
         1. TODO
     '''
-    D = 20 * 100
+    D = 10 * 100
     period = 10.0
     dt = 0.1
 
-    Vmax = D * np.pi / period
+    Vmax = D * 2 * np.pi / period
 
     omega = 2 * np.pi / period
 
@@ -247,7 +247,7 @@ def run_demo3(motor : USB_8SMC5) -> None:
             cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
             speed = int(abs(v))
             motor.set_speed(speed)
-            motor.wait_for_abs_speed(speed)
+            #motor.wait_for_abs_speed(speed)
             dist += int(v)*dt
             if cur_pos > dist and direction == 1:
                 dist = cur_pos
