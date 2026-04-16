@@ -226,12 +226,10 @@ def run_demo3(motor : USB_8SMC5) -> None:
         motor.rigt()
     else:motor.left()
 
-    #plt_speed = []
     dist = 0.0
     print("TEST STARTED")
     t_start = datetime.datetime.now()
     time_l = []
-    #wait_for_dest = motor.wait_for_dest_right
     pos_l = []
     try:
         while True:
@@ -241,34 +239,25 @@ def run_demo3(motor : USB_8SMC5) -> None:
             if new_dir != direction:
                 if new_dir > 0:
                     motor.rigt()
-                    #wait_for_dest = motor.wait_for_dest_right
                 else:
                     motor.left()
-                    #wait_for_dest = motor.wait_for_dest_left
 
                 direction = new_dir
 
             cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
-            #print(f"_cur_pos_ = {cur_pos}")
             speed = int(abs(v))
-            #plt_speed.append(v)
             motor.set_speed(speed)
             motor.wait_for_abs_speed(speed)
-            #print(f"old_dist={dist}")
             dist += int(v)*dt
             if cur_pos > dist and direction == 1:
                 dist = cur_pos
             if cur_pos < dist and direction == -1:
                 dist = cur_pos
-            #print(f"wait for {dist} with speed {int(v)}")
             if speed != 0:
-                #wait_for_dest(dist, dt = 0.01)
                 motor.wait_for_dest(dist, dt = 0.1)
             pos_l.append(int.from_bytes(motor.gets()[9:13], byteorder='little', signed=True))
             tnow = datetime.datetime.now()
             time_l.append((tnow-t_start).seconds*1000 + (tnow-t_start).microseconds/1000)
-            #time.sleep(dt)
-            #plt_t.append(int(((datetime.datetime.now()-t_start).microseconds)/1000))
             t = (t + dt) % period
     except KeyboardInterrupt:
         pass
