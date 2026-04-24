@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (
     QComboBox, QPushButton, QLabel, QMessageBox
 )
 
+from USB_8SMC5 import USB_8SMC5
+
 class MainApplicationWindow(QWidget):
     def __init__(self, rotations):
         super().__init__()
@@ -21,12 +23,16 @@ class MainApplicationWindow(QWidget):
 
 
 class RotationSelector(QWidget):
-    def __init__(self):
+    def __init__(self, device_list):
         super().__init__()
         self.setWindowTitle("Rotation Selector")
 
+        self.device_list = device_list
         # Поля для выбора
-        self.fields = ["X", "Y", "Z"]
+        #self.fields = ["X", "Y", "Z"]
+        self.fields = []
+        for d in device_list:
+            self.fields.append(str(d.gser))
 
         # Комбобоксы и метки
         self.comboboxes = {}
@@ -86,6 +92,15 @@ class RotationSelector(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = RotationSelector()
+    device_list = []
+    exclude_list = []
+    try:
+        while True:
+            d = USB_8SMC5(exclude_list)
+            exclude_list.apend(d.port_name)
+            device_list.append(d)
+    except:
+        pass
+    window = RotationSelector(device_list)
     window.show()
     sys.exit(app.exec())

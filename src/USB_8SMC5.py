@@ -4,9 +4,11 @@ from serial.tools import list_ports
 import time
 
 class USB_8SMC5:
-    def __init__(self):
+    def __init__(self, exclude_port_list = []):
         self.conn = None
         for prt, _, _ in sorted(list_ports.comports()):
+            if prt in exclude_port_list:
+                continue
             self.conn = Serial(port = prt,
                      baudrate      = 115200,
                      bytesize      = serial.EIGHTBITS,
@@ -17,6 +19,7 @@ class USB_8SMC5:
             if self.conn is None:
                 continue
             if self.gser() is not None:
+                self.port_name = prt
                 break
         if self.conn is None:
             raise StandaMotorNotFound()
