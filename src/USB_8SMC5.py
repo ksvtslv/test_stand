@@ -20,8 +20,12 @@ class USB_8SMC5:
                 break
         if self.conn is None:
             raise StandaMotorNotFound()
-
-
+        self.lengths['gmov'] = 30
+        self.lengths['geds'] = 26
+        self.lengths['geng'] = 34
+        self.lengths['gets'] = 54
+        self.lengths['gser'] = 10
+        
 
     def modbus_crc(self, msg:str) -> int:
         '''
@@ -38,6 +42,26 @@ class USB_8SMC5:
                     crc >>= 1
         return crc
 
+
+
+    def get(self, cmd : str) -> bytes:
+        '''
+        Unified get-method
+        TODO add descr
+        '''
+        plen = self.lengths[cmd]
+        self.conn.write(str.encode(cmd))
+        st = self.conn.read(plen)
+
+        crc = self.modbus_crc(st[4:plen-2])
+        ba = crc.to_bytes(2, byteorder='little')
+
+        crc_matches = ba[0] == st[plen-2] and ba[1] == st[plen-1]
+
+        if not crc_matches:
+            raise CrcNotMatches(cmd)
+        
+        return st
 
 
     def gmov(self):
@@ -412,7 +436,9 @@ class StandaMotorNotFound(Exception):
 
 class CrcNotMatches(Exception):
     """Raised when calculated crc doesn't not match with crc from packet."""
-    pass
+    def __init__(self, message = None):
+        self.message = message
+        super().__init__(self.message)
 
 def get_raw_str(raw_bytes):
     '''

@@ -32,7 +32,6 @@ def main():
     parser.add_argument('--demo1', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo2', help = 'move from 0 to 4500 with several speeds: 100, 1000', action='store_true')
     parser.add_argument('--demo3', help = 'move from 0 to 4500 with sin speed form', action='store_true')
-    #parser.add_argument('--demo4', help = 'move from 0 to 4500 with cos speed form', action='store_true')
         
     args = parser.parse_args()
 
