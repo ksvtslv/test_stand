@@ -52,6 +52,8 @@ class RotationSelector(QWidget):
         self.ok_btn.clicked.connect(self.ok_clicked)
         self.cancel_btn.clicked.connect(self.close)
 
+        self.ok_btn.setEnabled(False)  # изначально выключена
+
         # Раскладка
         main_layout = QVBoxLayout()
         for cb, label_text in self.comboboxes.items():
@@ -79,6 +81,10 @@ class RotationSelector(QWidget):
             cb.setCurrentText(current)
             cb.blockSignals(False)
             self.previous_selection[cb] = current
+        
+        # Проверяем: выбран ли хотя бы один комбобокс
+        any_selected = any(cb.currentText() != "" for cb in self.comboboxes)
+        self.ok_btn.setEnabled(any_selected)
 
     def ok_clicked(self):
         # Собираем выбранные значения
