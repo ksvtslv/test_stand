@@ -23,6 +23,7 @@ class USB_8SMC5:
                 break
         if self.conn is None:
             raise StandaMotorNotFound()
+        self.lengths = {}
         self.lengths['gmov'] = 30
         self.lengths['geds'] = 26
         self.lengths['geng'] = 34
