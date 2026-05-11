@@ -32,7 +32,7 @@ class RotationSelector(QWidget):
         #self.fields = ["X", "Y", "Z"]
         self.fields = []
         for d in device_list:
-            self.fields.append(str(d.gser))
+            self.fields.append(str(d.gser()))
 
         # Комбобоксы и метки
         self.comboboxes = {}
@@ -103,9 +103,12 @@ if __name__ == "__main__":
     try:
         while True:
             d = USB_8SMC5(exclude_list)
-            exclude_list.apend(d.port_name)
+            if d.port_name is None:
+                break
+            exclude_list.append(d.port_name)
             device_list.append(d)
-    except:
+    except Exception as e:
+        print(f"Listing COM ports failed with error: {e}")
         pass
     window = RotationSelector(device_list)
     window.show()

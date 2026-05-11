@@ -6,6 +6,7 @@ import time
 class USB_8SMC5:
     def __init__(self, exclude_port_list = []):
         self.conn = None
+        self.port_name = None
         for prt, _, _ in sorted(list_ports.comports()):
             if prt in exclude_port_list:
                 continue
@@ -29,6 +30,11 @@ class USB_8SMC5:
         self.lengths['geng'] = 34
         self.lengths['gets'] = 54
         self.lengths['gser'] = 10
+    
+    def __del__(self):
+        self.conn.close()
+        self.conn = None
+        self.lengths = None
         
 
     def modbus_crc(self, msg:str) -> int:

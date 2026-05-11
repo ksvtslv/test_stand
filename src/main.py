@@ -1,5 +1,6 @@
 import time
 import datetime
+import threading
 import argparse
 import numpy as np
 
@@ -13,6 +14,8 @@ def main():
             description='Program provides cli ineterface to run some commands...',
             epilog='This is epilog!')
     
+    parser.add_argument('--list', help="enumerate all connected drives", action='store_true')
+    parser.add_argument('--motor', help="use this motor to run command")
     parser.add_argument('--move', help="move to postition")
     parser.add_argument('--movr', help='shift by a set offset')
     parser.add_argument('--left', help='start moving left', action='store_true')
@@ -31,18 +34,30 @@ def main():
     parser.add_argument('--demo', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo1', help = 'move from 0 to 4500 with several speeds: 100, 500, 1000', action='store_true')
     parser.add_argument('--demo2', help = 'move from 0 to 4500 with several speeds: 100, 1000', action='store_true')
-    parser.add_argument('--demo3', help = 'move from 0 to 4500 with sin speed form', action='store_true')
+    parser.add_argument('--demo3', help = 'sin speed form demo', action='store_true')
+    parser.add_argument('--demo4', help = 'two-axis movement demo', action='store_true')
+    parser.add_argument('--demo5', help = 'two-axis sin speed form demo', action='store_true')
         
     args = parser.parse_args()
 
-    motor_drive = None
+    
+    motor_list = None
     try:
-        motor_drive = USB_8SMC5()
+        motor_list = get_motor_list()
     except SerialException as e:
         print(e)
         exit(1)
+    
+    motor_drive = None
+    if args.motor is not None:
+        motor_drive = motor_list[args.motor]
+    else:
+        motor_drive = motor_list[next(iter(motor_list))]
 
-    if args.move is not None:
+    if args.list:
+        for k in list(motor_list.keys()):
+            print(k)
+    elif args.move is not None:
         motor_drive.move(int(args.move))
         if args.plot:
             import matplotlib.pyplot as plt
@@ -136,10 +151,46 @@ def main():
         run_demo2(motor_drive)
     elif args.demo3:
         run_demo3(motor_drive)
-    #elif args.demo4:
-    #    run_demo4(motor_drive)
+    elif args.demo4:
+        run_demo4(motor_list)
+    elif args.demo5:
+        run_demo5(motor_list)
     else:
         parser.print_help()
+
+def get_motor_list():
+    device_list = {}
+    exclude_list = []
+    try:
+        while True:
+            d = USB_8SMC5(exclude_list)
+            if d.port_name is None:
+                break
+            exclude_list.append(d.port_name)
+            device_list[str(d.gser())] = d
+    except Exception as e:
+        print(f"Listing COM ports failed with error: {e}")
+        pass
+    return device_list
+
+def get_first_two_motors(): 
+    device_list = []
+    exclude_list = []
+    try:
+        while True:
+            d = USB_8SMC5(exclude_list)
+            if d.port_name is None:
+                break
+            exclude_list.append(d.port_name)
+            device_list.append(d)
+    except Exception as e:
+        print(f"Listing COM ports failed with error: {e}")
+        pass
+    return device_list[0], device_list[1]
+
+class DummyStopEvent:
+    def is_set(self):
+        return False
 
 def run_demo(motor : USB_8SMC5) -> None:
     '''
@@ -226,7 +277,7 @@ def run_demo2(motor : USB_8SMC5) -> None:
 
 
 
-def run_demo3(motor : USB_8SMC5) -> None:
+def run_demo3(motor : USB_8SMC5, stop_event = None) -> None:
     '''
     Demo contains next steps:
         1. TODO
@@ -258,8 +309,10 @@ def run_demo3(motor : USB_8SMC5) -> None:
     t_start = datetime.datetime.now()
     time_l = []
     pos_l = []
+    if stop_event is None:
+        stop_event = DummyStopEvent()
     try:
-        while True:
+        while not stop_event.is_set():
             v = Vmax * np.cos(omega * t)
             new_dir = 1 if v >= 0 else -1
 
@@ -296,18 +349,58 @@ def run_demo3(motor : USB_8SMC5) -> None:
     motor.set_speed(1000)
     motor.move(0)
 
-    import matplotlib.pyplot as plt
-    plt.figure(1)
-    plt.plot(np.linspace(1, len(pos_l), len(pos_l)), pos_l)
-    plt.scatter(np.linspace(1, len(pos_l), len(pos_l)), pos_l, color='red', s=50, label='Dots')
-    plt.title("position")
+    #import matplotlib.pyplot as plt
+    #plt.figure(1)
+    #plt.plot(np.linspace(1, len(pos_l), len(pos_l)), pos_l)
+    #plt.scatter(np.linspace(1, len(pos_l), len(pos_l)), pos_l, color='red', s=50, label='Dots')
+    #plt.title("position")
+#
+    #plt.figure(2)
+    #plt.plot(np.linspace(1, len(time_l), len(time_l)), time_l)
+    #plt.scatter(np.linspace(1, len(time_l), len(time_l)), time_l, color='red', s=50, label='Dots')
+    #plt.title("time")
+#
+    #plt.show()
 
-    plt.figure(2)
-    plt.plot(np.linspace(1, len(time_l), len(time_l)), time_l)
-    plt.scatter(np.linspace(1, len(time_l), len(time_l)), time_l, color='red', s=50, label='Dots')
-    plt.title("time")
+def run_demo4(motor_list) -> None:
+    '''
+    Demo contains next steps:
+        1. TODO
+    '''
+    first_motor = list(motor_list.values())[0]
+    second_motor = list(motor_list.values())[1]
+    first_motor.set_speed(500)
+    second_motor.set_speed(500)
+    first_motor.move(4500)
+    second_motor.move(4500)
+    first_motor.wait_for_stop()
+    second_motor.wait_for_stop()
+    
+    first_motor.move(0)
+    second_motor.move(0)
+    first_motor.wait_for_stop()
+    second_motor.wait_for_stop()
 
-    plt.show()
+def run_demo5(motor_list) -> None:
+    '''
+    Demo contains next steps:
+        1. TODO
+    '''
+    first_motor = list(motor_list.values())[0]
+    second_motor = list(motor_list.values())[1]
+
+    stop_event = threading.Event()
+    
+    thread = threading.Thread(target=run_demo3, args=(first_motor,stop_event,))
+    thread.start()
+
+    run_demo3(second_motor)
+
+    stop_event.set()
+
+    thread.join()
+
+
 
 if __name__ == "__main__":
     main()
