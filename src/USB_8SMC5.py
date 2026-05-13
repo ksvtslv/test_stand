@@ -205,6 +205,36 @@ class USB_8SMC5:
         return int.from_bytes(serial_num_raw[4:8][::-1]) if crc_matches else None
 
 
+    def seds(self,
+             borderFlags  : int = 0,
+             enderFlags   : int = 0,
+             leftBorder   : int = 0,
+             uleftBorder  : int = 0,
+             rightBorder  : int = 0,
+             uRightBorder : int = 0):
+
+        data += bytearray(int(borderFlags).to_bytes(1,  "little", signed=False))
+        data += bytearray(int(enderFlags).to_bytes(1,   "little", signed=False))
+        data += bytearray(int(leftBorder).to_bytes(4,   "little", signed=True))
+        data += bytearray(int(uleftBorder).to_bytes(2,  "little", signed=True))
+        data += bytearray(int(rightBorder).to_bytes(4,  "little", signed=True))
+        data += bytearray(int(urightBorder).to_bytes(2, "little", signed=True))
+        data += bytearray(int(0).to_bytes(6, "little", signed=False)) # reserved
+
+        crc = self.modbus_crc(data).to_bytes(4, "little")[0:2]
+
+        cmd = bytearray(str.encode("seds"))
+        cmd += data
+        cmd += crc
+
+        self.conn.write(cmd)
+        ret = self.conn.read(4)
+
+        # TODO Check answer for error!
+
+        return ret
+
+
 
     def smov(self,
              speed : int = 0,
@@ -327,6 +357,17 @@ class USB_8SMC5:
         self.conn.write(str.encode('zero'))
         ret = self.conn.read(4)
         print(ret)
+
+
+
+    def set_left_border(self, pos, upos = 0, stop_flag = 0x2):
+        border_info = self.geds()
+        self.seds(borderFlags ,
+                  enderFlags  ,
+                  leftBorder  ,
+                  uleftBorder ,
+                  rightBorder ,
+                  uRightBorder)
 
 
 
