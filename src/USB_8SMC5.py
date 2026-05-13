@@ -205,6 +205,36 @@ class USB_8SMC5:
         return int.from_bytes(serial_num_raw[4:8][::-1]) if crc_matches else None
 
 
+    def seds(self,
+             borderFlags  : int = 0,
+             enderFlags   : int = 0,
+             leftBorder   : int = 0,
+             uLeftBorder  : int = 0,
+             rightBorder  : int = 0,
+             uRightBorder : int = 0):
+
+        data = bytearray(int(borderFlags).to_bytes(1,  "little", signed=False))
+        data += bytearray(int(enderFlags).to_bytes(1,   "little", signed=False))
+        data += bytearray(int(leftBorder).to_bytes(4,   "little", signed=True))
+        data += bytearray(int(uLeftBorder).to_bytes(2,  "little", signed=True))
+        data += bytearray(int(rightBorder).to_bytes(4,  "little", signed=True))
+        data += bytearray(int(uRightBorder).to_bytes(2, "little", signed=True))
+        data += bytearray(int(0).to_bytes(6, "little", signed=False)) # reserved
+
+        crc = self.modbus_crc(data).to_bytes(4, "little")[0:2]
+
+        cmd = bytearray(str.encode("seds"))
+        cmd += data
+        cmd += crc
+
+        self.conn.write(cmd)
+        ret = self.conn.read(4)
+
+        # TODO Check answer for error!
+
+        return ret
+
+
 
     def smov(self,
              speed : int = 0,
@@ -327,6 +357,47 @@ class USB_8SMC5:
         self.conn.write(str.encode('zero'))
         ret = self.conn.read(4)
         print(ret)
+
+
+
+    def set_left_border(self, pos : int, upos : int = 0, stop_when_arrive : bool = True):
+        '''
+        stop_flag means that motor stops when arrive a border.
+                  Can be 0x2 -- flag set, 0 -- keep old value and -0x2 -- clear flag if set
+        '''
+        data = self.geds()
+        border_flags = data[4]
+        if stop_when_arrive:
+            border_flags |= 0x2
+        elif border_flags > 1:
+            border_flags -= 0x2
+        self.seds(border_flags, # border flags
+                  data[5],      # ender flags
+                  pos,          # border left position
+                  upos,         # u border left position
+                  int.from_bytes(data[12:16], byteorder='little', signed=True), # border right position
+                  int.from_bytes(data[16:18], byteorder='little', signed=True) # uborder right position
+                  )
+    
+
+
+    def set_right_border(self, pos : int, upos : int = 0, stop_when_arrive : bool = True):
+        '''
+        stop_flag means that motor stops when arrive a border. Can be 0x4 -- flag set or 0
+        '''
+        data = self.geds()
+        border_flags = data[4]
+        if stop_when_arrive:
+            border_flags |= 0x4
+        elif border_flags > 1:
+            border_flags -= 0x4
+        self.seds(border_flags, # border flags
+                  data[5],      # ender flags
+                  int.from_bytes(data[6:10], byteorder='little', signed=True),  # border left position
+                  int.from_bytes(data[10:12], byteorder='little', signed=True), # u border left position
+                  pos, # border right position
+                  upos # uborder right position
+                  )
 
 
 

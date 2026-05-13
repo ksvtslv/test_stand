@@ -16,6 +16,9 @@ def main():
     
     parser.add_argument('--list', help="enumerate all connected drives", action='store_true')
     parser.add_argument('--motor', help="use this motor to run command")
+    parser.add_argument('--left-border', help="set position of left border and stop when arrive")
+    parser.add_argument('--right-border', help="set position of left border and stop when arrive")
+    parser.add_argument('--swa', help="stop when arrive flag for settings left and right borders", action='store_true')
     parser.add_argument('--move', help="move to postition")
     parser.add_argument('--movr', help='shift by a set offset')
     parser.add_argument('--left', help='start moving left', action='store_true')
@@ -57,6 +60,10 @@ def main():
     if args.list:
         for k in list(motor_list.keys()):
             print(k)
+    elif args.left_border is not None:
+        motor_drive.set_left_border(args.left_border, 0, args.swa)
+    elif args.right_border:
+        motor_drive.set_right_border(args.right_border, 0, args.swa)
     elif args.move is not None:
         motor_drive.move(int(args.move))
         if args.plot:
