@@ -1,10 +1,121 @@
 import sys
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QComboBox, QPushButton, QLabel, QMessageBox
+from PyQt6.QtCore import Qt, QRectF, QSize
+from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QFont
+from PyQt6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QComboBox,
+    QPushButton,
+    QLabel,
+    QFrame,
+    QAbstractButton,
 )
 
 from USB_8SMC5 import USB_8SMC5
+
+#entities = ["Yaw", "Pitch", "Roll"]
+entities = ["Азимут", "Угол Места", "Диафрагма"]
+
+
+class ToggleSwitch(QAbstractButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setCheckable(True)
+        self.setChecked(True)
+
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self._width = 40
+        self._height = 15
+
+    def sizeHint(self):
+        return QSize(self._width, self._height)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+
+        # ---------- Background ----------
+        if self.isChecked():
+            bg_color = QColor("#4d9aff")
+        else:
+            bg_color = QColor("#999999")
+
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+
+        # Прямоугольный фон
+        painter.drawRect(0, 0, self._width, self._height)
+
+        # ---------- Handle ----------
+        handle_width = self._width // 2
+
+        if self.isChecked():
+            x = self._width - handle_width
+        else:
+            x = 0
+
+        painter.setBrush(QBrush(QColor("white")))
+
+        # Прямоугольный бегунок
+        painter.drawRect(
+            x,
+            0,
+            handle_width,
+            self._height
+        )
+
+        painter.end()
+
+
+class SectionWidget(QWidget):
+    def __init__(self, title):
+        super().__init__()
+
+        main_layout = QVBoxLayout(self)
+
+        # ---------- Header ----------
+        header_layout = QHBoxLayout()
+
+        title_label = QLabel(title)
+
+        font = QFont()
+        font.setBold(True)
+        font.setPointSize(11)
+
+        title_label.setFont(font)
+
+        self.toggle = ToggleSwitch()
+
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        header_layout.addWidget(self.toggle)
+
+        # ---------- Content ----------
+        self.content_widget = QWidget()
+
+        content_layout = QVBoxLayout(self.content_widget)
+
+        # Заглушки UI
+        content_layout.addWidget(QLabel(f"{title}: UI component 1"))
+        content_layout.addWidget(QPushButton("Button"))
+
+        combo = QComboBox()
+        combo.addItems(["Item 1", "Item 2", "Item 3"])
+
+        content_layout.addWidget(combo)
+        content_layout.addStretch()
+
+        # ---------- Connections ----------
+        self.toggle.toggled.connect(self.content_widget.setEnabled)
+
+        # ---------- Main ----------
+        main_layout.addLayout(header_layout)
+        main_layout.addWidget(self.content_widget)
+
 
 class MainApplicationWindow(QWidget):
     def __init__(self, rotations):
@@ -25,7 +136,7 @@ class MainApplicationWindow(QWidget):
 class RotationSelector(QWidget):
     def __init__(self, device_list):
         super().__init__()
-        self.setWindowTitle("Rotation Selector")
+        self.setWindowTitle("Назначение двигателей")
 
         self.device_list = device_list
         # Поля для выбора
@@ -36,7 +147,7 @@ class RotationSelector(QWidget):
 
         # Комбобоксы и метки
         self.comboboxes = {}
-        for name in ["Yaw", "Pitch", "Roll"]:
+        for name in entities:
             cb = QComboBox()
             cb.addItem("")  # пустое значение по умолчанию
             cb.addItems(self.fields)
@@ -47,8 +158,8 @@ class RotationSelector(QWidget):
         self.previous_selection = {cb: "" for cb in self.comboboxes}
 
         # Кнопки
-        self.ok_btn = QPushButton("Ok")
-        self.cancel_btn = QPushButton("Cancel")
+        self.ok_btn = QPushButton("Применить")
+        self.cancel_btn = QPushButton("Закрыть")
         self.ok_btn.clicked.connect(self.ok_clicked)
         self.cancel_btn.clicked.connect(self.close)
 

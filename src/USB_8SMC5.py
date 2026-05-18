@@ -32,9 +32,12 @@ class USB_8SMC5:
         self.lengths['gser'] = 10
     
     def __del__(self):
-        self.conn.close()
-        self.conn = None
-        self.lengths = None
+        try:
+            self.conn.close()
+            self.conn = None
+            self.lengths = None
+        except Exception as e:
+            print(f"USB_8SMC5 destructor says: {e}")
         
 
     def modbus_crc(self, msg:str) -> int:
