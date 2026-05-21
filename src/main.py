@@ -195,9 +195,15 @@ def get_first_two_motors():
         pass
     return device_list[0], device_list[1]
 
-class DummyStopEvent:
+class DummyEvent:
+    def __init__(self, is_set : bool = False):
+        self._is_set = is_set
+    
     def is_set(self):
-        return False
+        return self._is_set
+    
+    def wait(self):
+        return
 
 def run_demo(motor : USB_8SMC5) -> None:
     '''
@@ -284,7 +290,7 @@ def run_demo2(motor : USB_8SMC5) -> None:
 
 
 
-def run_demo3(motor : USB_8SMC5, stop_event = None) -> None:
+def run_demo3(motor : USB_8SMC5, start_event = None, stop_event = None) -> None:
     '''
     Demo contains next steps:
         1. TODO
@@ -304,21 +310,25 @@ def run_demo3(motor : USB_8SMC5, stop_event = None) -> None:
 
     t = 0
 
-    v = Vmax * np.cos(omega * t)
-    motor.set_speed(int(abs(v)))
-    direction = 1 if v >= 0 else -1
-    if direction == 1:
-        motor.rigt()
-    else:motor.left()
-
     dist = 0.0
     #print("TEST STARTED")
     #t_start = datetime.datetime.now()
     #time_l = []
     pos_l = []
+    if start_event == None:
+        start_event = DummyEvent(is_set=True)
     if stop_event is None:
-        stop_event = DummyStopEvent()
+        stop_event = DummyEvent()
     try:
+        start_event.wait()
+        v = Vmax * np.cos(omega * t)
+        motor.set_speed(int(abs(v)))
+        direction = 1 if v >= 0 else -1
+        if direction == 1:
+            motor.rigt()
+        else:
+            motor.left()
+
         while not stop_event.is_set():
             v = Vmax * np.cos(omega * t)
             new_dir = 1 if v >= 0 else -1
@@ -391,7 +401,7 @@ def run_demo4(motor_list) -> None:
 
 def sync_sin(motor : USB_8SMC5, stop_event = None) -> None:
     
-    D = 10 * 100
+    D = 10 * 100 # 10 degree is amplitude
     period = 10.0
     dt = 0.1
 
@@ -415,7 +425,7 @@ def sync_sin(motor : USB_8SMC5, stop_event = None) -> None:
 
     dist = 0.0
     if stop_event is None:
-        stop_event = DummyStopEvent()
+        stop_event = DummyEvent()
     try:
         while not stop_event.is_set():
             v = Vmax * np.cos(omega * t)
@@ -461,16 +471,27 @@ def run_demo5(motor_list) -> None:
     first_motor = list(motor_list.values())[0]
     second_motor = list(motor_list.values())[1]
 
+    start_event = threading.Event() 
     stop_event = threading.Event()
     
-    thread = threading.Thread(target=run_demo3, args=(first_motor,stop_event,))
-    thread.start()
+    thread1 = threading.Thread(target=run_demo3, args=(first_motor,start_event,stop_event,))
+    thread2 = threading.Thread(target=run_demo3, args=(second_motor,start_event,stop_event,))
+    
+    thread1.start()
+    thread2.start()
 
-    run_demo3(second_motor)
+    start_event.set()
 
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
+    
     stop_event.set()
 
-    thread.join()
+    thread1.join()
+    thread2.join()
 
 
 
