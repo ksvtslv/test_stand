@@ -312,9 +312,9 @@ def run_demo3(motor : USB_8SMC5, stop_event = None) -> None:
     else:motor.left()
 
     dist = 0.0
-    print("TEST STARTED")
-    t_start = datetime.datetime.now()
-    time_l = []
+    #print("TEST STARTED")
+    #t_start = datetime.datetime.now()
+    #time_l = []
     pos_l = []
     if stop_event is None:
         stop_event = DummyStopEvent()
@@ -341,10 +341,11 @@ def run_demo3(motor : USB_8SMC5, stop_event = None) -> None:
             if cur_pos < dist and direction == -1:
                 dist = cur_pos
             if speed != 0:
-                motor.wait_for_dest(dist, dt = 0.1)
+                #motor.wait_for_dest(dist, dt = 0.1)
+                time.sleep(dt)
             pos_l.append(int.from_bytes(motor.gets()[9:13], byteorder='little', signed=True))
-            tnow = datetime.datetime.now()
-            time_l.append((tnow-t_start).seconds*1000 + (tnow-t_start).microseconds/1000)
+            #tnow = datetime.datetime.now()
+            #time_l.append((tnow-t_start).seconds*1000 + (tnow-t_start).microseconds/1000)
             t = (t + dt) % period
     except KeyboardInterrupt:
         pass
@@ -387,6 +388,70 @@ def run_demo4(motor_list) -> None:
     second_motor.move(0)
     first_motor.wait_for_stop()
     second_motor.wait_for_stop()
+
+def sync_sin(motor : USB_8SMC5, stop_event = None) -> None:
+    
+    D = 10 * 100
+    period = 10.0
+    dt = 0.1
+
+    Vmax = D * 2 * np.pi / period
+
+    omega = 2 * np.pi / period
+
+    # настройки движения
+    motor.set_accel(60000)
+    motor.set_decel(60000)
+    motor.zero()
+
+    t = 0
+
+    v = Vmax * np.cos(omega * t)
+    motor.set_speed(int(abs(v)))
+    direction = 1 if v >= 0 else -1
+    if direction == 1:
+        motor.rigt()
+    else:motor.left()
+
+    dist = 0.0
+    if stop_event is None:
+        stop_event = DummyStopEvent()
+    try:
+        while not stop_event.is_set():
+            v = Vmax * np.cos(omega * t)
+            new_dir = 1 if v >= 0 else -1
+
+            if new_dir != direction:
+                if new_dir > 0:
+                    motor.rigt()
+                else:
+                    motor.left()
+
+                direction = new_dir
+
+            cur_pos = int.from_bytes(motor.gets()[9:13], byteorder='little', signed = True)
+            speed = int(abs(v))
+            motor.set_speed(speed)
+            dist += int(v)*dt
+            if cur_pos > dist and direction == 1:
+                dist = cur_pos
+            if cur_pos < dist and direction == -1:
+                dist = cur_pos
+            if speed != 0:
+                #motor.wait_for_dest(dist, dt = 0.1)
+                time.sleep(dt)
+            t = (t + dt) % period
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"Exception {e}")
+        exit(1)
+
+    print("TEST FINISHED")
+    motor.set_speed(1000)
+    motor.move(0)
+
+
 
 def run_demo5(motor_list) -> None:
     '''
