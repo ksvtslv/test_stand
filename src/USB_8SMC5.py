@@ -4,7 +4,7 @@ from serial.tools import list_ports
 import time
 
 class USB_8SMC5:
-    def __init__(self, exclude_port_list = []):
+    def __init__(self, exclude_port_list = [], drive_id = None):
         self.conn = None
         self.port_name = None
         for prt, _, _ in sorted(list_ports.comports()):
@@ -19,8 +19,17 @@ class USB_8SMC5:
                      write_timeout = 0.3,)
             if self.conn is None:
                 continue
-            if self.gser() is not None:
+            id = self.gser()
+            is_drive_found = False
+            if id is not None:
                 self.port_name = prt
+                self.drive_id = id
+                if drive_id is not None:
+                    if drive_id == id:
+                        is_drive_found = True
+                else:
+                    is_drive_found = True
+            if is_drive_found:
                 break
         if self.conn is None:
             raise StandaMotorNotFound()
